@@ -15,7 +15,11 @@ const CAST: &str = include_str!("cast.metal");
 const CONV: &str = include_str!("conv.metal");
 const REDUCE: &str = include_str!("reduce.metal");
 const RANDOM: &str = include_str!("random.metal");
+#[cfg(not(target_os = "ios"))]
 const MFA: &[u8] = include_bytes!("libMetalFlashAttention.metallib");
+#[cfg(target_os = "ios")]
+// from https://github.com/philipturner/metal-flash-attention/releases/tag/v1.0.1
+const MFA: &[u8] = include_bytes!("libMetalFlashAttention.ios.metallib");
 const QUANTIZED: &str = include_str!("quantized.metal");
 
 /// Most kernels apply similarly across the tensors

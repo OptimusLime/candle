@@ -10,6 +10,11 @@ use std::ffi::c_void;
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock, RwLockWriteGuard, TryLockError};
 
+#[cfg(target_os = "ios")]
+const SHARED_BUFFER_STORAGE_MODE: MTLResourceOptions = MTLResourceOptions::StorageModeShared;
+#[cfg(not(target_os = "ios"))]
+const SHARED_BUFFER_STORAGE_MODE: MTLResourceOptions = MTLResourceOptions::StorageModeManaged;
+
 /// Simple way to catch lock error without
 /// depending on T
 #[derive(thiserror::Error, Debug)]
@@ -198,7 +203,7 @@ impl MetalDevice {
     /// synchronization when the CPU memory is modified
     /// Used as a bridge to gather data back from the GPU
     pub fn new_buffer_managed(&self, size: NSUInteger) -> Result<Arc<Buffer>> {
-        self.allocate_buffer(size, MTLResourceOptions::StorageModeManaged, "managed")
+        self.allocate_buffer(size, SHARED_BUFFER_STORAGE_MODE, "managed")
     }
 
     /// Creates a new buffer from data.
@@ -211,11 +216,11 @@ impl MetalDevice {
         let new_buffer = self.device.new_buffer_with_data(
             data.as_ptr() as *const c_void,
             size,
-            MTLResourceOptions::StorageModeManaged,
+            SHARED_BUFFER_STORAGE_MODE,
         );
         let mut buffers = self.buffers.try_write().map_err(MetalError::from)?;
         let subbuffers = buffers
-            .entry((size, MTLResourceOptions::StorageModeManaged))
+            .entry((size, SHARED_BUFFER_STORAGE_MODE))
             .or_insert(vec![]);
 
         let new_buffer = Arc::new(new_buffer);
@@ -1864,7 +1869,7 @@ impl BackendDevice for MetalDevice {
         let seed = Arc::new(Mutex::new(device.new_buffer_with_data(
             [299792458].as_ptr() as *const c_void,
             4,
-            MTLResourceOptions::StorageModeManaged,
+            SHARED_BUFFER_STORAGE_MODE,
         )));
         Ok(Self {
             device,
