@@ -6,12 +6,7 @@ use std::ffi::c_void;
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
 
-use super::MetalError;
-
-#[cfg(target_os = "ios")]
-const SHARED_BUFFER_STORAGE_MODE: MTLResourceOptions = MTLResourceOptions::StorageModeShared;
-#[cfg(not(target_os = "ios"))]
-const SHARED_BUFFER_STORAGE_MODE: MTLResourceOptions = MTLResourceOptions::StorageModeManaged;
+use super::{MetalError, METAL_SHARED_BUFFER_STORAGE_MODE};
 
 /// Unique identifier for cuda devices.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -235,7 +230,7 @@ impl MetalDevice {
     /// synchronization when the CPU memory is modified
     /// Used as a bridge to gather data back from the GPU
     pub fn new_buffer_managed(&self, size: NSUInteger) -> Result<Arc<Buffer>> {
-        self.allocate_buffer(size, SHARED_BUFFER_STORAGE_MODE, "managed")
+        self.allocate_buffer(size, METAL_SHARED_BUFFER_STORAGE_MODE, "managed")
     }
 
     /// Creates a new buffer from data.
@@ -248,12 +243,12 @@ impl MetalDevice {
         let new_buffer = self.device.new_buffer_with_data(
             data.as_ptr() as *const c_void,
             size,
-            SHARED_BUFFER_STORAGE_MODE,
+            METAL_SHARED_BUFFER_STORAGE_MODE,
         );
         let mut buffers = self.buffers.write().map_err(MetalError::from)?;
 
         let subbuffers = buffers
-            .entry((size, SHARED_BUFFER_STORAGE_MODE))
+            .entry((size, METAL_SHARED_BUFFER_STORAGE_MODE))
             .or_insert(vec![]);
 
         let new_buffer = Arc::new(new_buffer);
